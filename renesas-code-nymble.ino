@@ -13,8 +13,10 @@ static int cnt = 0;
 volatile int display_speed = 0;
 int count_bytes= 0;
 char incomingByte = 0;
-byte eeprom_byte;
+char eeprom_byte = 'g';
+char sendFlag = 0;
 volatile int counttime = 0;
+char str[] = "Finance Minister Arun Jaitley Tuesday hit out at former RBI governor Raghuram Rajan for predicting that the next banking crisis would be triggered by MSME lending, saying postmortem is easier than taking action when it was required. Rajan, who had as the chief economist at IMF warned of impending financial crisis of 2008, in a note to a parliamentary committee warned against ambitious credit targets and loan waivers, saying that they could be the sources of next banking crisis. Government should focus on sources of the next crisis, not just the last one.In particular, government should refrain from setting ambitious credit targets or waiving loans. Credit targets are sometimes achieved by abandoning appropriate due diligence, creating the environment for future NPAs,' Rajan said in the note.' Both MUDRA loans as well as the Kisan Credit Card, while popular, have to be examined more closely for potential credit risk. Rajan, who was RBI governor for three years till September 2016, is currently.";
 #define ACK 0x01
 void displaySpeed()
 {
@@ -147,7 +149,6 @@ void setup() {
   setup_gpt7();
   setup_pin_change_interrupt();
 }
-
 //*********************************************************************
 void loop() {
 
@@ -164,27 +165,32 @@ void loop() {
   if(Serial1.available() > 0)
   {
     incomingByte = Serial1.read();
-    //EEPROM.write(count_bytes,incomingByte);
     //Serial.println(incomingByte);
     count_bytes++;
-     if(incomingByte == '\0')
+    if(incomingByte == '\0')
     {
-      //Serial.println("Cdone");
-      eeprom_byte = EEPROM.read(0);
-      Serial1.write(eeprom_byte);
-      Serial1.write("$\r\n", 3);
+      Serial.println("Cdone");
+      for(int i = 0; i < 1012; i++)
+      {
+        Serial1.write(str[i]);
+      }
+      Serial1.write("\r", 1);
+      Serial1.write("\n", 1);
+//    eeprom_byte = EEPROM.read(0);
+//    Serial.println(eeprom_byte);
     }
   }
 
-//  if(Serial.available() > 0)
-//  {
-//    incomingByte = Serial.read();
-//    Serial.println(incomingByte);
-//    count_bytes++;
-//  }
+
+
   if(display_speed == 1)
   {
+    //eeprom_byte = EEPROM.read(0);
     display_speed = 0;
     displaySpeed();
+  }
+  //if(sendFlag == 0)
+  {
+   // sendFlag = 1;
   }
 }
