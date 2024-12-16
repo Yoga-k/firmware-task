@@ -4,6 +4,7 @@
  *                       MCU: R7FA4M1AB3CFM (LQFP64)
  *
  *********************************************************************/
+ #include <EEPROM.h>
 static const int dly_msec = 500;
 static const IRQn_Type IRQn_OVF7 = IRQn_Type(16);    // Valid range is [0,31] but don't use low numbers
 static const IRQn_Type IRQn_PCHGD2 = IRQn_Type(17);  // Valid range is [0,31] but don't use low numbers
@@ -12,8 +13,9 @@ static int cnt = 0;
 volatile int display_speed = 0;
 int count_bytes= 0;
 char incomingByte = 0;
+byte eeprom_byte;
 volatile int counttime = 0;
-
+#define ACK 0x01
 void displaySpeed()
 {
   count_bytes = count_bytes * 8;
@@ -162,12 +164,16 @@ void loop() {
   if(Serial1.available() > 0)
   {
     incomingByte = Serial1.read();
+    //EEPROM.write(count_bytes,incomingByte);
     //Serial.println(incomingByte);
-    if(incomingByte == '\0')
-    {
-      Serial.println("cdone");
-    }
     count_bytes++;
+     if(incomingByte == '\0')
+    {
+      //Serial.println("Cdone");
+      eeprom_byte = EEPROM.read(0);
+      Serial1.write(eeprom_byte);
+      Serial1.write("$\r\n", 3);
+    }
   }
 
 //  if(Serial.available() > 0)
