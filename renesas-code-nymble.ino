@@ -16,13 +16,18 @@ char incomingByte = 0;
 char eeprom_byte = 'g';
 char sendFlag = 0;
 volatile int counttime = 0;
+int info = 1;
 char str[] = "Finance Minister Arun Jaitley Tuesday hit out at former RBI governor Raghuram Rajan for predicting that the next banking crisis would be triggered by MSME lending, saying postmortem is easier than taking action when it was required. Rajan, who had as the chief economist at IMF warned of impending financial crisis of 2008, in a note to a parliamentary committee warned against ambitious credit targets and loan waivers, saying that they could be the sources of next banking crisis. Government should focus on sources of the next crisis, not just the last one.In particular, government should refrain from setting ambitious credit targets or waiving loans. Credit targets are sometimes achieved by abandoning appropriate due diligence, creating the environment for future NPAs,' Rajan said in the note.' Both MUDRA loans as well as the Kisan Credit Card, while popular, have to be examined more closely for potential credit risk. Rajan, who was RBI governor for three years till September 2016, is currently.";
 #define ACK 0x01
-char st[] = "hello word";
 void displaySpeed()
 {
   count_bytes = count_bytes * 8;
-  Serial.println(count_bytes);
+  if(count_bytes)
+  {
+    Serial.print("Receiving from PC Speed: ");
+    Serial.print(count_bytes);
+    Serial.println(" bits/second");
+  }
   count_bytes = 0;
 }
 
@@ -36,12 +41,12 @@ void gpt7_ovf_isr() {
   counttime++;
   if(counttime == 1000)
   {
-    digitalWrite(LED_BUILTIN, LOW); 
+  //  digitalWrite(LED_BUILTIN, LOW); 
     display_speed = 1;
   }
   else if(counttime == 2000)
   {
-      digitalWrite(LED_BUILTIN, HIGH);
+//      digitalWrite(LED_BUILTIN, HIGH);
       counttime = 0;
       display_speed = 1;
   }
@@ -56,7 +61,7 @@ void pin_change_isr() {
   // Stop GPT7
   R_GPT7->GTCR_b.CST = 0;
   // On-board LED off
-  digitalWrite(LED_BUILTIN, LOW);
+  //digitalWrite(LED_BUILTIN, LOW);
 
   // Clear GPT7 counter
   t7_cnt = 0;
@@ -148,20 +153,12 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
   setup_gpt7();
-  setup_pin_change_interrupt();
-}
+ // setup_pin_change_interrupt();
+ }
 //*********************************************************************
 void loop() {
 
-//  for (t7_cnt = 0; t7_cnt < dly_msec;) {}
-//  digitalWrite(LED_BUILTIN, HIGH);
-//
-//  for (t7_cnt = 0; t7_cnt < dly_msec;) {}
-//  digitalWrite(LED_BUILTIN, LOW);
 
-  cnt++;
-//  Serial.print(" Counter value = ");
-//  Serial.println(cnt);
 
   if(Serial1.available() > 0)
   {
@@ -170,15 +167,19 @@ void loop() {
     count_bytes++;
     if(incomingByte == '\0')
     {
-      Serial.println("Cdone");
-      for(int i = 0; i < 1009; i++)
+
+      for(int i = 0; i < sizeof(str); i++)
       {
+        if(info)
+        {
+          info = 0;
+          Serial.println("Sending to PC");
+        }
         Serial1.write(str[i]);
       }
       Serial1.write("\r", 1);
       Serial1.write("\n", 1);
-//    eeprom_byte = EEPROM.read(0);
-//    Serial.println(eeprom_byte);
+      info = 1;
     }
   }
 
