@@ -7,15 +7,31 @@
 #include <termios.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-
+#include <time.h>
+#include <signal.h>
 #define DEBUG 0
-
+#define SIZE 1011
+int display_speed = 0;
+int totalBytes = 0;
+void timer_callback(int signum)
+{
+    time_t now = time(NULL);
+    //display_speed = 1;
+    printf("Signal %d caught on %li", signum, now);
+    alarm(1);
+}
+void displaySpeed()
+{
+  totalBytes  = totalBytes * 8;
+  printf("Speed : %d bits/second\n",totalBytes);
+  totalBytes = 0;
+}
 int main(int argc, char *argv[])
 {
   printf("start\n");
   int fd, n, i;
-  char rbuf[1012];
-  char buf[] = "*Finance Minister Arun Jaitley Tuesday hit out at former RBI governor Raghuram Rajan for predicting that the next banking crisis would be triggered by MSME lending, saying postmortem is easier than taking action when it was required. Rajan, who had as the chief economist at IMF warned of impending financial crisis of 2008, in a note to a parliamentary committee warned against ambitious credit targets and loan waivers, saying that they could be the sources of next banking crisis. Government should focus on sources of the next crisis, not just the last one.* *In particular, government should refrain from setting ambitious credit targets or waiving loans. Credit targets are sometimes achieved by abandoning appropriate due diligence, creating the environment for future NPAs,' Rajan said in the note.' Both MUDRA loans as well as the Kisan Credit Card, while popular, have to be examined more closely for potential credit risk. Rajan, who was RBI governor for three years till September 2016, is currently.*";
+  char rbuf[SIZE];
+  char buf[] = "Finance Minister Arun Jaitley Tuesday hit out at former RBI governor Raghuram Rajan for predicting that the next banking crisis would be triggered by MSME lending, saying postmortem is easier than taking action when it was required. Rajan, who had as the chief economist at IMF warned of impending financial crisis of 2008, in a note to a parliamentary committee warned against ambitious credit targets and loan waivers, saying that they could be the sources of next banking crisis. Government should focus on sources of the next crisis, not just the last one.* *In particular, government should refrain from setting ambitious credit targets or waiving loans. Credit targets are sometimes achieved by abandoning appropriate due diligence, creating the environment for future NPAs,' Rajan said in the note.' Both MUDRA loans as well as the Kisan Credit Card, while popular, have to be examined more closely for potential credit risk. Rajan, who was RBI governor for three years till September 2016, is currently.";
   struct termios toptions;
   printf("start\n");
   /* open serial port */
@@ -36,34 +52,54 @@ int main(int argc, char *argv[])
   toptions.c_cflag &= ~CSIZE;
   toptions.c_cflag |= CS8;
   /* Canonical mode */
-  toptions.c_lflag |= ICANON;
+  //toptions.c_lflag |= ICANON;
+  //toptions.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP
+    //                   | INLCR | IGNCR | ICRNL | IXON);
+  //toptions.c_oflag &= ~OPOST;
+  toptions.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
   /* commit the serial port settings */
   tcsetattr(fd, TCSANOW, &toptions);
 
   /* Send byte to trigger Arduino to send string back */
   write(fd, buf, strlen(buf)+1);
+  signal(SIGALRM, timer_callback);
+  alarm(1);
   /* Receive string from Arduino */
   //sleep(1);
-
-  n = read(fd, rbuf, 1011);
-  printf("read bytes:%d\n", n);
-  /* insert terminating zero in the string */
-  rbuf[n] = 0;
-
-  printf("%i bytes read, buffer contains: %s\n", n, rbuf);
-  if(close(fd) < 0)
+  int sumbytes = 0;
+  char outbuf[SIZE];
+  while(1)
   {
-	  printf("error closing the file");
-	  perror("c1");
-	  exit(1);
+	//printf("Read the bytes:\n");
+	n = read(fd, rbuf, SIZE);
+	memcpy(outbuf + sumbytes, rbuf, SIZE);
+	//printf("n: %d\n",n);
+	totalBytes += n;
+	if(display_speed == 1)
+	{
+		display_speed = 0;
+		displaySpeed();
+	}
+	sumbytes += n;
+  	//printf("read bytes:%d |%d| %s|\n", sumbytes, n, rbuf);
+  }
+  /* insert terminating zero in the string */
+  rbuf[sumbytes] = 0;
+
+  printf("%i bytes read, buffer contains: %s\n", n, outbuf);
+  //if(close(fd) < 0)
+  {
+	//  printf("error closing the file");
+	  //perror("c1");
+	  //exit(1);
   }
   if(DEBUG)
     {
       printf("Printing individual characters in buf as integers...\n\n");
-      for(i=0; i<n; i++)
-    {
-      printf("Byte %i:%i, ",i+1, (int)buf[i]);
-    }
+    	for(i=0; i<n; i++)
+    	{
+      		printf("Byte %i:%i, ",i+1, (int)buf[i]);
+   	}
       printf("\n");
     }
 
